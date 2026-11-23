@@ -1,0 +1,67 @@
+{
+  "lanes": [
+    { "id": "OPERATOR", "name": "You", "x": 8 },
+    { "id": "HOST", "name": "Agent", "x": 22 },
+    { "id": "LLM", "name": "Model", "x": 36 },
+    { "id": "CLIENT", "name": "Connector", "x": 50 },
+    { "id": "HTTP", "name": "HTTP wire", "x": 64 },
+    { "id": "SERVER", "name": "Doc server", "x": 78 },
+    { "id": "BACKEND", "name": "Data sources", "x": 92 }
+  ],
+  "groups": [
+    { "label": "Agent · MCP host", "lanes": ["HOST", "LLM"] },
+    { "label": "Connector · MCP client", "lanes": ["CLIENT", "HTTP"] },
+    { "label": "Doc server · MCP server", "lanes": ["SERVER"] },
+    { "label": "Data sources · not MCP", "lanes": ["BACKEND"] }
+  ],
+  "phases": {
+    "1": "1 · Find out what the server offers",
+    "2": "2 · Model chooses and runs tools",
+    "3": "3 · Write the answer"
+  },
+  "kind_phase": {
+    "discover": 1, "discover_result": 1, "tools_list": 1, "tools_list_result": 1,
+    "prompts_list": 1, "prompts_list_result": 1,
+    "llm_tool_request": 2, "llm_tool_call": 2, "llm_tool_done": 2, "tool_call": 2,
+    "tool_result": 2, "tool_error": 2, "backend_search": 2, "backend_result": 2,
+    "ticket_request": 2, "ticket_result": 2, "backend_error": 2,
+    "prompt_get": 3, "prompt_result": 3, "llm_answer_request": 3, "llm_answer_reply": 3, "answer": 3
+  },
+  "pairs": {
+    "discover_result": "discover", "tools_list_result": "tools_list", "prompts_list_result": "prompts_list",
+    "tool_result": "tool_call", "tool_error": "tool_call", "prompt_result": "prompt_get",
+    "llm_tool_call": "llm_tool_request", "llm_tool_done": "llm_tool_request",
+    "llm_answer_reply": "llm_answer_request", "backend_result": "backend_search",
+    "ticket_result": "ticket_request", "backend_error": "ticket_request", "wire_response": "wire_request"
+  },
+  "explain": {
+    "question": "The caller's question enters the agent. Nothing about tools is known yet.",
+    "discover": "The connector asks the server who it is and what it can do - a single stateless request, no session.",
+    "discover_result": "The server answers with its name, version, protocol, and the capability groups it offers.",
+    "tools_list": "The connector asks for the list of tools, each with a description and a JSON Schema for its inputs.",
+    "tools_list_result": "The tool names, descriptions and input schemas. The agent passes these to the model unchanged.",
+    "prompts_list": "The connector asks which prompts the server publishes.",
+    "prompts_list_result": "The prompts on offer, each with its arguments.",
+    "llm_tool_request": "The agent sends the question and the tool descriptions to the model and asks which tool, if any, to call.",
+    "llm_tool_call": "The model answers with a function call: tool name and arguments.",
+    "llm_tool_done": "The model says it has enough. The tool loop ends.",
+    "tool_call": "The connector sends a tools/call request. The server validates the arguments and runs it.",
+    "backend_search": "Inside the server: the question is embedded and searched. Plain code, not MCP.",
+    "backend_result": "Ranked results come back from the data source to the server.",
+    "ticket_request": "Inside the server: the query is sent to an external REST API. Not MCP.",
+    "ticket_result": "Results come back from the external API to the server.",
+    "backend_error": "The data source failed. The server turns this into a tool error the model can read.",
+    "tool_result": "The tool's result: structured content plus a text version.",
+    "tool_error": "The tool ran but failed. The error travels back as a result so the model can react to it.",
+    "prompt_get": "The connector fetches the prompt the agent chose, filled with its declared arguments.",
+    "prompt_result": "The prompt text: how the answer must be written.",
+    "llm_answer_request": "The agent sends the instructions and the retrieved text to the answer model.",
+    "llm_answer_reply": "The model's answer.",
+    "answer": "The agent returns the answer to the caller.",
+    "host_decision": "A decision the agent made on its own, without calling the model or the server.",
+    "wire_request": "What actually went over HTTP: one request carrying one JSON-RPC message.",
+    "wire_response": "The HTTP response.",
+    "sampling": "The server asks to borrow the agent's model (sampling/createMessage).",
+    "elicitation": "The server asks the caller a question (elicitation/create)."
+  }
+}

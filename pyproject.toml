@@ -1,0 +1,45 @@
+[project]
+name = "flowlog"
+version = "0.1.0"
+description = "Zero-infra JSONL tracing + browser sequence-diagram viewer for debugging multi-process/agent/MCP flows locally. Not a production observability backend."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = []
+authors = [{ name = "Avinash S", email = "avinash@intelligence-lattice.com" }]
+keywords = ["debugging", "tracing", "logging", "mcp", "agents", "sequence-diagram", "dev-tool"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Debuggers",
+]
+
+[project.urls]
+Homepage = "https://github.com/IntelligenceLattice/flowlog"
+Issues = "https://github.com/IntelligenceLattice/flowlog/issues"
+
+[project.optional-dependencies]
+httpx = ["httpx"]
+requests = ["requests"]
+aiohttp = ["aiohttp"]
+dev = ["pytest"]
+
+[project.scripts]
+flowlog = "flowlog.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/flowlog"]
+
+[tool.hatch.build]
+include = [
+    "src/flowlog/**/*.py",
+    "src/flowlog/py.typed",
+    "src/flowlog/viewer/static/*.html",
+    "src/flowlog/viewer/default_config.json",
+]

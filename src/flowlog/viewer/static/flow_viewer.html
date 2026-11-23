@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>flowlog viewer</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --panel: #ffffff; --ink: #000000; --muted: #5f5b53; --faint: #9a9494;
+    --line: #d9d4c7; --actor: #fdf3dc; --actor-border: #d8c9a3; --group: #e9e3d3;
+    --p1: rgb(232, 237, 247); --p2: rgb(246, 232, 236); --p3: rgb(229, 242, 233);
+    --wire: #6b6b6b; --err: #b3261e; --err-bg: #fbe9e7; --sel: #fff6c9; --new: #1f6feb;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.4 var(--sans); }
+  body { display: grid; grid-template-rows: auto 1fr; }
+
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 10px 16px;
+           border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 650; }
+  .pill { font-size: 12px; padding: 2px 10px; border-radius: 99px; border: 1px solid var(--line); background: #f3f0e8; }
+  .pill.running { background: #e7f0ff; border-color: #9dbcf0; }
+  .pill.done { background: var(--p3); border-color: #9cc8a8; }
+  .pill.error { background: var(--err-bg); border-color: #e3a39c; }
+  #question { flex: 1 1 300px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .counters { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+  .counters b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .controls { display: flex; gap: 12px; align-items: center; font-size: 12px; flex-wrap: wrap; }
+  .controls label { display: flex; gap: 4px; align-items: center; cursor: pointer; }
+  button, .filebtn { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 6px;
+                     background: #fff; cursor: pointer; color: var(--ink); }
+  button:hover, .filebtn:hover { background: #f3f0e8; }
+  .filebtn input { display: none; }
+
+  main { display: grid; grid-template-columns: minmax(360px, 1fr) 6px minmax(220px, 320px) 6px minmax(200px, 280px);
+         min-height: 0; }
+  @media (max-width: 1000px) {
+    main { grid-template-columns: 1fr !important; grid-template-rows: 1fr 6px 38% 6px 38%; }
+    .resizer { cursor: row-resize !important; }
+  }
+
+  .resizer { background: var(--line); cursor: col-resize; position: relative; }
+  .resizer:hover, .resizer.active { background: var(--new); }
+
+  #diagramPane { overflow: auto; min-height: 0; position: relative; }
+  #diagram { position: relative; min-width: 1040px; padding-bottom: 60px; }
+
+  /* lane header */
+  #lanes { position: sticky; top: 0; z-index: 5; height: 104px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .group { position: absolute; top: 6px; bottom: 6px; border: 1px solid var(--group); border-radius: 6px; }
+  .group span { position: absolute; top: 3px; left: 0; right: 0; text-align: center; font-size: 11px; letter-spacing: .04em;
+                color: var(--muted); text-transform: uppercase; }
+  .actor { position: absolute; top: 30px; transform: translateX(-50%); width: 118px; min-height: 58px; padding: 6px 4px;
+           background: var(--actor); border: 1px solid var(--actor-border); border-radius: 5px; text-align: center;
+           font-size: 12.5px; font-weight: 600; display: flex; flex-direction: column; justify-content: center; }
+  .actor small { font-weight: 400; color: var(--muted); font-size: 11px; }
+
+  .lifeline { position: absolute; top: 104px; bottom: 0; width: 0; border-left: 1px solid var(--faint); z-index: 1; }
+
+  /* bands and rows */
+  .band { margin: 10px 6px 0; border-radius: 4px; padding: 26px 0 8px; position: relative; }
+  .band.p1 { background: var(--p1); } .band.p2 { background: var(--p2); } .band.p3 { background: var(--p3); }
+  .band.p0 { background: transparent; padding-top: 6px; }
+  .band > .title { position: absolute; top: 5px; left: 50px; font-size: 12px; font-weight: 600; z-index: 3;
+                   border: 1px solid #000; padding: 1px 8px; background: rgba(255,255,255,.55); }
+  .scenario { margin: 18px 6px 0; padding: 6px 50px; font-weight: 650; font-size: 13px; border-top: 2px solid #000;
+              position: relative; z-index: 3; }
+
+  .row { position: relative; height: 56px; z-index: 2; cursor: pointer; }
+  .row:hover { background: rgba(0,0,0,.035); }
+  .row.sel { background: var(--sel); }
+  .row .t { position: absolute; left: 6px; top: 20px; font: 10.5px var(--mono); color: var(--faint); }
+  .arrow { position: absolute; top: 30px; height: 0; border-top: 2px solid var(--ink); }
+  .arrow.reply { border-top-style: dashed; }
+  .arrow::before { content: ""; position: absolute; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--ink); }
+  .arrow::after { content: ""; position: absolute; top: -6px; border: 5px solid transparent; }
+  .arrow.ltr::before { left: -5px; } .arrow.rtl::before { right: -5px; }
+  .arrow.ltr::after { right: -2px; border-left: 9px solid var(--ink); border-right: 0; }
+  .arrow.rtl::after { left: -2px; border-right: 9px solid var(--ink); border-left: 0; }
+  .label { position: absolute; top: 8px; transform: translateX(-50%); white-space: nowrap; max-width: 420px;
+           overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; text-align: center; }
+  .tag { position: absolute; top: 35px; transform: translateX(-50%); white-space: nowrap; font-size: 10.5px; color: var(--muted);
+         max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+  .tag .ms { color: var(--new); font-variant-numeric: tabular-nums; }
+
+  .row.wire { height: 34px; }
+  .row.wire .arrow { top: 20px; border-top: 1px solid var(--wire); }
+  .row.wire .arrow.reply { border-top-style: dashed; }
+  .row.wire .arrow::before { width: 6px; height: 6px; top: -3.5px; background: var(--wire); }
+  .row.wire .arrow::after { top: -4.5px; border-width: 4px; }
+  .row.wire .arrow.ltr::after { border-left: 7px solid var(--wire); }
+  .row.wire .arrow.rtl::after { border-right: 7px solid var(--wire); }
+  .row.wire .label { top: 3px; font: 11px var(--mono); color: var(--wire); }
+  .row.wire .tag { display: none; }
+  .row.wire .t { top: 12px; }
+
+  .row.error .arrow { border-top-color: var(--err); }
+  .row.error .arrow::before { background: var(--err); }
+  .row.error .arrow.ltr::after { border-left-color: var(--err); }
+  .row.error .arrow.rtl::after { border-right-color: var(--err); }
+  .row.error .label { color: var(--err); font-weight: 600; }
+
+  .row.note { height: 44px; }
+  .note-box { position: absolute; top: 8px; transform: translateX(-50%); border: 1px solid #000; background: #fffdf4;
+              padding: 3px 10px; font-size: 12px; white-space: nowrap; max-width: 460px; overflow: hidden; text-overflow: ellipsis; }
+
+  .row.fresh .arrow { animation: pulse 1.2s ease-out 1; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(31,111,235,.6); } 100% { box-shadow: 0 0 0 10px rgba(31,111,235,0); } }
+
+  .hide-wire .row.wire, .hide-logs .row.log { display: none; }
+
+  #empty { padding: 60px 20px; text-align: center; color: var(--muted); position: relative; z-index: 3; }
+  #empty code { font-family: var(--mono); background: #f0ece2; padding: 2px 6px; border-radius: 4px; }
+
+  /* code + packet panes */
+  .pane { overflow: auto; min-height: 0; background: var(--panel); padding: 14px 16px 30px; border-left: 1px solid var(--line); }
+  @media (max-width: 1000px) { .pane { border-left: 0; border-top: 1px solid var(--line); } }
+  .pane h2 { font-size: 15px; margin: 0 0 4px; }
+  .pane .paneLabel { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 8px; }
+  .pane .formal { font: 12px var(--mono); color: var(--muted); margin-bottom: 10px; }
+  .pane .explain { background: #f7f5ef; border-left: 3px solid #000; padding: 8px 10px; margin: 8px 0 12px; font-size: 13px; }
+  .pane dl { display: grid; grid-template-columns: 95px 1fr; gap: 3px 10px; font-size: 12.5px; margin: 0 0 12px; }
+  .pane dt { color: var(--muted); } .pane dd { margin: 0; overflow-wrap: anywhere; }
+  .pane h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 16px 0 6px;
+               display: flex; justify-content: space-between; align-items: center; }
+  pre { margin: 0; font: 12px/1.45 var(--mono); background: #faf8f2; border: 1px solid var(--line); border-radius: 6px;
+        padding: 8px 10px; overflow: auto; max-height: 420px; white-space: pre; }
+  .j-key { color: #7a3e00; } .j-str { color: #0b6b2d; } .j-num { color: #1f4fbf; } .j-lit { color: #8a1f7a; }
+  .code-line { display: block; } .code-line.hit { background: var(--sel); font-weight: 600; }
+  .code-line .ln { display: inline-block; width: 36px; color: var(--faint); user-select: none; }
+  .muted { color: var(--muted); }
+  a { color: var(--new); }
+  .legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--muted); padding: 6px 16px; border-bottom: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<header>
+  <h1>flowlog · live flow</h1>
+  <span id="status" class="pill">waiting for a run</span>
+  <span id="question"></span>
+  <div class="counters">
+    <span>sends <b id="cSend">0</b></span>
+    <span>replies <b id="cRecv">0</b></span>
+    <span>errors <b id="cErr">0</b></span>
+    <span>elapsed <b id="cTime">0.0s</b></span>
+  </div>
+  <div class="controls">
+    <label><input type="checkbox" id="optWire" checked> HTTP wire</label>
+    <label><input type="checkbox" id="optLogs"> log lines</label>
+    <label><input type="checkbox" id="optFollow" checked> follow</label>
+    <button id="btnClear" type="button">Clear</button>
+    <button id="btnResetLayout" type="button">Reset layout</button>
+    <label class="filebtn">Load trace…<input type="file" id="fileIn" accept=".jsonl,.json,.ndjson,.txt"></label>
+  </div>
+</header>
+<main id="main">
+  <div id="diagramPane">
+    <div class="legend">
+      <span>━━ request</span><span>╌╌ reply</span><span style="color:var(--wire)">── HTTP wire (role "HTTP")</span>
+      <span>Click any arrow to see the message and the code that sent it.</span>
+    </div>
+    <div id="diagram">
+      <div id="lanes"></div>
+      <div id="rows">
+        <div id="empty">
+          Waiting for events…<br><br>
+          Start a run: <code>flowlog run your_script.py</code><br>
+          or load a saved <code>.jsonl</code> trace.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="resizer" id="rz1"></div>
+  <aside class="pane" id="codePane">
+    <div class="paneLabel">Code</div>
+    <h2 id="codeTitle">Nothing selected</h2>
+    <div class="formal" id="codeFormal">Click an arrow in the diagram.</div>
+    <div id="codeExplain"></div>
+    <div id="codeBody"></div>
+  </aside>
+  <div class="resizer" id="rz2"></div>
+  <aside class="pane" id="packetPane">
+    <div class="paneLabel">Packet</div>
+    <div id="packetMeta"></div>
+    <div id="packetBody"></div>
+  </aside>
+</main>
+
+<script>
+"use strict";
+
+// ---- layout: 3 resizable panes, min widths, remembered in localStorage ------
+const PANE_MIN = { flow: 320, code: 200, packet: 180 };
+const PANE_DEFAULT = { flow: null, code: 320, packet: 280 }; // flow takes remaining space
+function loadPaneWidths() {
+  try {
+    const raw = localStorage.getItem("flowlog.viewer.paneWidths");
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+function savePaneWidths(w) {
+  try { localStorage.setItem("flowlog.viewer.paneWidths", JSON.stringify(w)); } catch {}
+}
+function applyPaneWidths(w) {
+  const main = document.getElementById("main");
+  if (window.innerWidth <= 1000) { main.style.gridTemplateColumns = ""; return; }
+  main.style.gridTemplateColumns = `minmax(${PANE_MIN.flow}px, 1fr) 6px ${w.code}px 6px ${w.packet}px`;
+}
+let paneWidths = loadPaneWidths() || { code: PANE_DEFAULT.code, packet: PANE_DEFAULT.packet };
+applyPaneWidths(paneWidths);
+
+function setupResizer(handle, side) {
+  handle.addEventListener("pointerdown", e => {
+    handle.classList.add("active");
+    const startX = e.clientX;
+    const startCode = paneWidths.code, startPacket = paneWidths.packet;
+    const onMove = ev => {
+      const dx = ev.clientX - startX;
+      if (side === "code") {
+        paneWidths.code = Math.max(PANE_MIN.code, startCode - dx);
+      } else {
+        paneWidths.packet = Math.max(PANE_MIN.packet, startPacket - dx);
+      }
+      applyPaneWidths(paneWidths);
+    };
+    const onUp = () => {
+      handle.classList.remove("active");
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      savePaneWidths(paneWidths);
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+  });
+}
+setupResizer(document.getElementById("rz1"), "code");
+setupResizer(document.getElementById("rz2"), "packet");
+document.getElementById("btnResetLayout").onclick = () => {
+  paneWidths = { code: PANE_DEFAULT.code, packet: PANE_DEFAULT.packet };
+  applyPaneWidths(paneWidths);
+  try { localStorage.removeItem("flowlog.viewer.paneWidths"); } catch {}
+};
+window.addEventListener("resize", () => applyPaneWidths(paneWidths));
+
+// ---- config: lanes/groups/phases/kind_phase/pairs/explain, fetched once -----
+let CONFIG = { lanes: [], groups: [], phases: {}, kind_phase: {}, pairs: {}, explain: {} };
+let lanes = [];     // runtime lane list: [{id, name}], x assigned by order
+function seedLanes() {
+  lanes = (CONFIG.lanes || []).map(l => ({ id: l.id, name: l.name || l.id }));
+  redistributeX();
+}
+function laneX(id) { const l = lanes.find(l => l.id === id); return l ? l.x : 50; }
+function redistributeX() {
+  const n = lanes.length;
+  lanes.forEach((l, i) => { l.x = n <= 1 ? 50 : 8 + i * (84 / (n - 1)); });
+}
+function ensureLane(id) {
+  if (!id) return null;
+  const found = lanes.find(l => l.id.toLowerCase() === String(id).toLowerCase());
+  if (found) return found.id;
+  lanes.push({ id: String(id), name: String(id) });
+  redistributeX();
+  drawLanes();
+  return String(id);
+}
+
+function drawLanes() {
+  const el2 = document.getElementById("lanes");
+  el2.innerHTML = "";
+  for (const g of (CONFIG.groups || [])) {
+    const xs = (g.lanes || []).map(laneX).filter(x => x !== undefined);
+    if (!xs.length) continue;
+    const from = Math.min(...xs) - 6.5, to = Math.max(...xs) + 6.5;
+    const d = el("div", "group"); d.style.left = from + "%"; d.style.width = (to - from) + "%";
+    d.append(el("span", "", g.label || "")); el2.append(d);
+  }
+  for (const l of lanes) {
+    const a = el("div", "actor"); a.style.left = l.x + "%";
+    a.append(document.createTextNode(l.name));
+    el2.append(a);
+    const line = el("div", "lifeline"); line.style.left = l.x + "%";
+    document.getElementById("diagram").append(line);
+  }
+}
+
+async function loadConfig() {
+  try {
+    const r = await fetch("/config");
+    CONFIG = await r.json();
+  } catch { /* keep the empty default; generic rendering still works */ }
+  seedLanes();
+  drawLanes();
+}
+
+function shortText(s, n) { s = String(s ?? ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+
+// ---- generic rendering: one trace event -> zero or more rows ----------------
+// Unknown role/kind/peer never error - they just render with no phase band and
+// no explain tooltip (see docs/config-schema.md).
+function rowsFor(ev) {
+  const t = ev.text || "";
+  if (ev.dir === "rule") return !t ? [] : [{ scenario: t }];
+  if (ev.dir === "note") {
+    const a = ensureLane(ev.role);
+    return [{ from: a, to: a, style: "note", plain: t, tag: ev.role, kind: ev.kind }];
+  }
+  const a = ensureLane(ev.role), b = ensureLane(ev.peer);
+  if (!b || a === b) {
+    return [{ from: a, to: a, style: "note", plain: t, tag: ev.role, kind: ev.kind }];
+  }
+  const wire = ev.role === "HTTP" || ev.peer === "HTTP";
+  const isError = /error|fail/i.test(ev.kind || "");
+  const style = ev.dir === "recv" ? "reply" : "req";
+  const from = ev.dir === "recv" ? b : a;
+  const to = ev.dir === "recv" ? a : b;
+  return [{ from, to, style: wire ? "wire" : style, reply: style === "reply", plain: t,
+            tag: ev.role.toLowerCase(), kind: ev.kind, error: isError, log: /log/i.test(ev.kind || "") }];
+}
+
+// ---- state ------------------------------------------------------------------
+let state;
+function resetState() {
+  state = { t0: null, last: null, band: null, phase: null, pending: {}, n: { send: 0, recv: 0, err: 0 },
+            rows: [], selected: null, done: false };
+  document.getElementById("rows").innerHTML = "";
+  setStatus("waiting for a run", "");
+  document.getElementById("question").textContent = "";
+  updateCounters();
+}
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function setStatus(text, cls) { const s = document.getElementById("status"); s.textContent = text; s.className = "pill " + cls; }
+function updateCounters() {
+  document.getElementById("cSend").textContent = state.n.send;
+  document.getElementById("cRecv").textContent = state.n.recv;
+  document.getElementById("cErr").textContent = state.n.err;
+}
+setInterval(() => {
+  if (state && state.t0 && !state.done) document.getElementById("cTime").textContent = ((Date.now() / 1000) - state.t0).toFixed(1) + "s";
+}, 200);
+
+function currentBand(phase) {
+  const rows = document.getElementById("rows");
+  if (phase !== undefined && phase !== state.phase) {
+    state.phase = phase;
+    state.band = el("div", "band p" + phase);
+    const title = (CONFIG.phases || {})[String(phase)];
+    if (title) state.band.append(el("div", "title", title));
+    rows.append(state.band);
+  }
+  if (!state.band) { state.phase = 0; state.band = el("div", "band p0"); rows.append(state.band); }
+  return state.band;
+}
+
+function ingest(ev, live) {
+  const empty = document.getElementById("empty"); if (empty) empty.remove();
+  if (state.t0 === null) { state.t0 = ev.ts; setStatus("running", "running"); }
+  if (ev.kind === "question" || /question/i.test(ev.kind || "")) {
+    const q = (ev.payload && (ev.payload.question || ev.payload.text)) || ev.text;
+    if (q) document.getElementById("question").textContent = q;
+    if (state.done) { state.done = false; setStatus("running", "running"); }
+  }
+  if (ev.dir === "send") state.n.send++;
+  if (ev.dir === "recv") state.n.recv++;
+  if (/error|fail/i.test(ev.kind || "")) state.n.err++;
+
+  const pairs = CONFIG.pairs || {};
+  let took = null;
+  if (pairs[ev.kind] && state.pending[pairs[ev.kind]] !== undefined) {
+    took = ev.ts - state.pending[pairs[ev.kind]];
+    delete state.pending[pairs[ev.kind]];
+  }
+  if (Object.values(pairs).includes(ev.kind)) state.pending[ev.kind] = ev.ts;
+  const since = state.last === null ? 0 : ev.ts - state.last;
+  state.last = ev.ts;
+
+  const specs = rowsFor(ev);
+  for (const spec of specs) {
+    if (spec.scenario) {
+      document.getElementById("rows").append(el("div", "scenario", spec.scenario));
+      state.phase = null; state.band = null;
+      continue;
+    }
+    const phase = (CONFIG.kind_phase || {})[ev.kind];
+    const band = currentBand(phase);
+    const row = buildRow(spec, ev, took, since);
+    band.append(row);
+    state.rows.push(row);
+    if (live) { row.classList.add("fresh"); setTimeout(() => row.classList.remove("fresh"), 1300); }
+  }
+  updateCounters();
+  if (live && document.getElementById("optFollow").checked && specs.length) {
+    const pane = document.getElementById("diagramPane");
+    pane.scrollTop = pane.scrollHeight;
+  }
+}
+
+function buildRow(spec, ev, took, since) {
+  const cls = ["row"];
+  if (spec.style === "wire") cls.push("wire");
+  if (spec.style === "note") cls.push("note");
+  if (spec.error) cls.push("error");
+  if (spec.log) cls.push("log");
+  const row = el("div", cls.join(" "));
+  row.append(el("span", "t", "+" + (ev.ts - state.t0).toFixed(1) + "s"));
+
+  if (spec.style === "note") {
+    const box = el("div", "note-box", spec.plain); box.style.left = laneX(spec.from) + "%"; row.append(box);
+  } else {
+    const a = laneX(spec.from), b = laneX(spec.to);
+    const lo = Math.min(a, b), hi = Math.max(a, b), mid = (a + b) / 2;
+    const arrow = el("div", "arrow " + (a <= b ? "ltr" : "rtl") + (spec.reply ? " reply" : ""));
+    arrow.style.left = lo + "%"; arrow.style.width = (hi - lo) + "%";
+    const label = el("div", "label", spec.plain); label.style.left = mid + "%"; label.title = spec.plain;
+    const tag = el("div", "tag"); tag.style.left = mid + "%";
+    tag.append(document.createTextNode(spec.tag));
+    if (took !== null) tag.append(el("span", "ms", `  · ${fmtMs(took)}`));
+    row.append(arrow, label, tag);
+  }
+  row.addEventListener("click", () => select(row, spec, ev, took, since));
+  return row;
+}
+
+function fmtMs(sec) { return sec < 1 ? Math.round(sec * 1000) + " ms" : sec.toFixed(2) + " s"; }
+
+// ---- code pane + packet pane -------------------------------------------------
+function select(row, spec, ev, took, since) {
+  if (state.selected) state.selected.classList.remove("sel");
+  row.classList.add("sel"); state.selected = row;
+
+  // Code pane
+  document.getElementById("codeTitle").textContent = spec.plain;
+  document.getElementById("codeFormal").textContent = spec.tag + (ev.kind ? "  ·  " + ev.kind : "");
+  const explainBox = document.getElementById("codeExplain");
+  explainBox.innerHTML = "";
+  const exp = (CONFIG.explain || {})[ev.kind];
+  if (exp) explainBox.append(el("div", "explain", exp));
+  const body = document.getElementById("codeBody");
+  body.innerHTML = "";
+  if (ev.code && ev.code.file) renderCode(body, "Code that logged this", ev.code);
+  else body.append(el("div", "muted", "(no code location captured for this event)"));
+
+  // Packet pane
+  const meta = document.getElementById("packetMeta");
+  meta.innerHTML = "";
+  const laneName = id => (lanes.find(l => l.id === id) || {}).name || id;
+  const dl = el("dl");
+  const add = (k, v) => { dl.append(el("dt", "", k), el("dd", "", v)); };
+  add("From → to", spec.from === spec.to ? laneName(spec.from) : `${laneName(spec.from)} → ${laneName(spec.to)}`);
+  add("At", `+${(ev.ts - state.t0).toFixed(3)} s`);
+  add("Since prev", fmtMs(since));
+  if (took !== null) add("Took", fmtMs(took));
+  add("Logged by", `${ev.role} · pid ${ev.pid}`);
+  meta.append(dl);
+  const pbody = document.getElementById("packetBody");
+  pbody.innerHTML = "";
+  if (ev.payload !== undefined) {
+    const h = el("h3", "", "Payload");
+    const copy = el("button", "", "Copy JSON"); copy.type = "button";
+    copy.onclick = () => navigator.clipboard && navigator.clipboard.writeText(JSON.stringify(ev.payload, null, 2)).then(() => copy.textContent = "Copied");
+    h.append(copy); pbody.append(h);
+    const pre = el("pre"); pre.innerHTML = highlightJson(JSON.stringify(ev.payload, null, 2)); pbody.append(pre);
+  } else {
+    pbody.append(el("div", "muted", "(no payload on this event)"));
+    pbody.append(el("h3", "", "Raw log line"));
+    pbody.append(el("pre", "", ev.text || ""));
+  }
+}
+
+function renderCode(container, heading, code) {
+  container.append(el("h3", "", heading));
+  const where = el("div", "muted", `${code.file}:${code.line} · ${code.func}()`);
+  where.style.fontFamily = "var(--mono)"; where.style.fontSize = "12px"; where.style.marginBottom = "6px";
+  container.append(where);
+  const pre = el("pre", "", "loading…"); container.append(pre);
+  fetch(`/code?file=${encodeURIComponent(code.file)}&line=${code.line}`)
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(c => {
+      pre.innerHTML = "";
+      c.lines.forEach((text, i) => {
+        const n = c.start + i;
+        const line = el("span", "code-line" + (n === c.line ? " hit" : ""));
+        line.append(el("span", "ln", String(n)), document.createTextNode(text));
+        pre.append(line);
+      });
+      const link = el("a", "", "Open in VS Code");
+      link.href = `vscode://file${c.abs}:${c.line}`;
+      where.append(document.createTextNode("  \u00b7  "), link);
+      const hit = pre.querySelector(".hit"); if (hit) pre.scrollTop = hit.offsetTop - 120;
+    })
+    .catch(() => { pre.textContent = "(code preview needs the viewer server)"; });
+}
+
+function highlightJson(s) {
+  s = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return s.replace(/("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g, (m, str, colon, lit) => {
+    if (str) return colon ? `<span class="j-key">${str}</span>${colon}` : `<span class="j-str">${str}</span>`;
+    if (lit) return `<span class="j-lit">${m}</span>`;
+    return `<span class="j-num">${m}</span>`;
+  });
+}
+
+// ---- options ----------------------------------------------------------------
+const diagram = () => document.getElementById("diagram");
+function bindOpt(id, cls, invert) {
+  const box = document.getElementById(id);
+  const apply = () => diagram().classList.toggle(cls, invert ? !box.checked : box.checked);
+  box.addEventListener("change", apply); apply();
+}
+bindOpt("optWire", "hide-wire", true);
+bindOpt("optLogs", "hide-logs", true);
+document.getElementById("btnClear").onclick = () => resetState();
+document.getElementById("fileIn").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(text => {
+    resetState();
+    for (const line of text.split("\n")) { if (line.trim()) { try { ingest(JSON.parse(line), false); } catch {} } }
+  });
+};
+
+// ---- live feed ----------------------------------------------------------------
+resetState();
+loadConfig().then(() => {
+  if (location.protocol.startsWith("http")) {
+    const es = new EventSource("/events");
+    es.onmessage = m => { try { ingest(JSON.parse(m.data), true); } catch (err) { console.error(err, m.data); } };
+    es.addEventListener("reset", () => resetState());
+    es.onerror = () => { if (!state.t0) setStatus("viewer offline", "error"); };
+    es.addEventListener("hello", () => { if (!state.t0) setStatus("waiting for a run", ""); });
+  }
+});
+</script>
+</body>
+</html>

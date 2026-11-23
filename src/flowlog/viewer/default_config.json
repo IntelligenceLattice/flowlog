@@ -1,0 +1,11 @@
+{
+  "lanes": [
+    { "id": "app", "name": "App" },
+    { "id": "peer", "name": "Peer" }
+  ],
+  "groups": [],
+  "phases": {},
+  "kind_phase": {},
+  "pairs": {},
+  "explain": {}
+}
