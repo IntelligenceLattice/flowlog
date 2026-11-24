@@ -47,7 +47,7 @@ server. No collector, no account, no cloud.
 **2. Run your script and watch the flow:**
 
 ```bash
-pip install flowlog
+pip install git+https://github.com/IntelligenceLattice/flowlog
 flowlog run your_script.py   # starts tracing and opens the viewer in your browser
 ```
 
@@ -202,8 +202,9 @@ Instrument <PATH> with flowlog tracing, following these rules exactly:
 1. Check whether `flowlog` is already a dependency of this project (search
    pyproject.toml/requirements.txt or try `import flowlog`). If not installed,
    add it using this project's own existing dependency manager (uv add / poetry
-   add / pip install + requirements.txt entry) - add it as a dev-only dependency
-   if the project separates dev/prod deps.
+   add / pip install + requirements.txt entry), installing it
+   from `git+https://github.com/IntelligenceLattice/flowlog` (the PyPI package named `flowlog` is an unrelated project) - add it as a dev-only dependency if the project separates
+   dev/prod deps.
 2. Scan <PATH> (a file, folder, or the whole repo if no path given) for logical
    boundaries: function entry/exit at process or network edges, request handlers,
    tool/queue dispatch points. Skip plain internal helper functions - only

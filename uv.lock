@@ -434,7 +434,7 @@ wheels = [
 ]
 
 [[package]]
-name = "flowlog"
+name = "flowlog-trace"
 version = "0.1.0"
 source = { editable = "." }
 

@@ -8,7 +8,7 @@ so you can see the viewer working in seconds.
 ## Run it
 
 ```bash
-pip install flowlog
+pip install git+https://github.com/IntelligenceLattice/flowlog
 ./run_demo.sh "How do I rotate an API key?"
 ```
 

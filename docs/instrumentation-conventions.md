@@ -10,7 +10,7 @@ duplicate this body verbatim; keep them in sync if you edit this).
 2. **Ensure `flowlog` is installed.** Check `import flowlog` succeeds. If
    not, detect the project's own dependency convention (uv/poetry
    `pyproject.toml`, `requirements.txt`, or bare pip) and install flowlog
-   the matching way - never introduce a new dependency mechanism. Prefer a
+   the matching way, from `git+https://github.com/IntelligenceLattice/flowlog` (the PyPI package named `flowlog` is an unrelated project) - never introduce a new dependency mechanism. Prefer a
    dev-only dependency group, since instrumented calls are wrapped for the
    production-strip convention (step 4) and don't need flowlog installed in
    production at all. Verify with a second `import flowlog` check; stop and

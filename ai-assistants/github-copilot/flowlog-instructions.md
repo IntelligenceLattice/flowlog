@@ -16,7 +16,7 @@ tracing/observability using flowlog), follow these steps exactly:
 2. Ensure `flowlog` is installed in this project. Check `import flowlog`; if
    missing, detect this project's dependency convention (uv/poetry
    pyproject, requirements.txt, or bare pip) and install flowlog the
-   matching way. Prefer a dev-only dependency group, since instrumented
+   matching way, from `git+https://github.com/IntelligenceLattice/flowlog` (the PyPI package named `flowlog` is an unrelated project). Prefer a dev-only dependency group, since instrumented
    calls are wrapped in `if __debug__:`.
 3. Identify instrumentation points: function entry/exit at process/network
    boundaries, request handlers, tool/queue dispatch - not every function,

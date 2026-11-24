@@ -1,5 +1,5 @@
 [project]
-name = "flowlog"
+name = "flowlog-trace"
 version = "0.1.0"
 description = "Zero-infra JSONL tracing + browser sequence-diagram viewer for debugging multi-process/agent/MCP flows locally. Not a production observability backend."
 readme = "README.md"
