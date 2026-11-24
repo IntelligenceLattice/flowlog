@@ -1,7 +1,7 @@
 [project]
 name = "flowlog-trace"
 version = "0.1.0"
-description = "Zero-infra JSONL tracing + browser sequence-diagram viewer for debugging multi-process/agent/MCP flows locally. Not a production observability backend."
+description = "See how your processes, agents, and MCP servers talk to each other, as a live sequence diagram in your browser. Built for local debugging and demos."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"

@@ -102,7 +102,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     from flowlog import __version__
 
-    parser = argparse.ArgumentParser(prog="flowlog", description="Zero-infra flow tracing + browser viewer")
+    parser = argparse.ArgumentParser(prog="flowlog", description="Trace how your processes, agents, and MCP servers talk, and watch it as a live sequence diagram")
     parser.add_argument("--version", action="version", version=f"flowlog {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
