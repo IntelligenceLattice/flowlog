@@ -17,14 +17,14 @@ to see the line of code that logged it and the full payload it carried.
 2. **Remove:** run with `python -O` and every call disappears (Prompt A
    wraps each one in `if __debug__:` so Python skips them), or strip them
    from the source for good with
-   [`strip_flowlog.py`](examples/mcp_doc_host/strip_flowlog.py).
+   [`strip_flowlog.py`](https://github.com/IntelligenceLattice/flowlog/blob/main/examples/mcp_doc_host/strip_flowlog.py).
 
-![Flowlog sequence diagram of a full MCP question-and-answer flow](docs/assets/sequence-full.png)
+![Flowlog sequence diagram of a full MCP question-and-answer flow](https://raw.githubusercontent.com/IntelligenceLattice/flowlog/main/docs/assets/sequence-full.png)
 *A real run of the bundled example: a question travels from you to the
 agent, the model picks a tool, the connector calls the doc server, and the
 answer comes back, grouped into three phases.*
 
-![Close-up of the tool-call phase](docs/assets/sequence-tool-call.png)
+![Close-up of the tool-call phase](https://raw.githubusercontent.com/IntelligenceLattice/flowlog/main/docs/assets/sequence-tool-call.png)
 *Close-up of phase 2: solid arrows are calls, dashed arrows are replies,
 and each reply shows how long it took.*
 
@@ -164,11 +164,11 @@ it has already parsed a response (TLS already unwrapped it) and before it
 sends a request (TLS hasn't wrapped it yet). Flowlog never inspects wire
 bytes and cannot decode traffic it isn't handed by the application layer -
 wire/packet-level sniffing of encrypted traffic is out of scope by design.
-Full detail: [docs/hooks.md](docs/hooks.md).
+Full detail: [docs/hooks.md](https://github.com/IntelligenceLattice/flowlog/blob/main/docs/hooks.md).
 
 ## The viewer
 
-![Flowlog viewer with flow, code, and packet panes](docs/assets/viewer-3-pane.png)
+![Flowlog viewer with flow, code, and packet panes](https://raw.githubusercontent.com/IntelligenceLattice/flowlog/main/docs/assets/viewer-3-pane.png)
 *The bundled example with the `tools/call docs_search` arrow
 selected: the code pane jumps to `toy_host.py:36`, the line that logged it,
 and the packet pane shows the exact arguments sent.*
@@ -181,14 +181,14 @@ Three resizable panes, all live as events stream in:
 - **Packet:** its full JSON payload, one click to copy.
 
 Drag the dividers to resize. Your layout is saved in the browser, with a
-one-click reset. Full detail: [docs/viewer.md](docs/viewer.md).
+one-click reset. Full detail: [docs/viewer.md](https://github.com/IntelligenceLattice/flowlog/blob/main/docs/viewer.md).
 
 ## Config: lanes, phases, tooltips per project
 
 The viewer has no built-in vocabulary - `flowlog.config.json` maps your
 own role/kind strings to lane layout, phase bands, reply-pairing, and
 tooltips. Unmapped values never error, they just render generically. Full
-schema: [docs/config-schema.md](docs/config-schema.md). See
+schema: [docs/config-schema.md](https://github.com/IntelligenceLattice/flowlog/blob/main/docs/config-schema.md). See
 `examples/mcp_doc_host/flowlog.config.json` for a worked example.
 
 ## AI-assistant auto-instrumentation
@@ -249,9 +249,9 @@ you to instrument a subset of it next.
 
 Prefer an installed command? See [Using Flowlog with Claude Code](#using-flowlog-with-claude-code)
 below. GitHub Copilot and Codex equivalents (repo instructions and a prompt
-file) are in [ai-assistants/github-copilot/](ai-assistants/github-copilot/)
-and [ai-assistants/codex/](ai-assistants/codex/). All of them follow the
-same steps, written out in [docs/instrumentation-conventions.md](docs/instrumentation-conventions.md).
+file) are in [ai-assistants/github-copilot/](https://github.com/IntelligenceLattice/flowlog/tree/main/ai-assistants/github-copilot/)
+and [ai-assistants/codex/](https://github.com/IntelligenceLattice/flowlog/tree/main/ai-assistants/codex/). All of them follow the
+same steps, written out in [docs/instrumentation-conventions.md](https://github.com/IntelligenceLattice/flowlog/blob/main/docs/instrumentation-conventions.md).
 
 ## Using Flowlog with Claude Code
 
@@ -312,7 +312,7 @@ contains full payloads.
 
 **5. Remove it when you're done.** Run with `python -O`, or ask Claude Code
 to strip the calls with
-[`strip_flowlog.py`](examples/mcp_doc_host/strip_flowlog.py)
+[`strip_flowlog.py`](https://github.com/IntelligenceLattice/flowlog/blob/main/examples/mcp_doc_host/strip_flowlog.py)
 (`python examples/mcp_doc_host/strip_flowlog.py src/` from a clone of this
 repo; add `--check` to preview without changing anything).
 
@@ -352,7 +352,7 @@ This table is a living doc - PRs that add or remove a capability update it
 
 ## Examples
 
-[examples/mcp_doc_host/](examples/mcp_doc_host/) - a standalone toy script
+[examples/mcp_doc_host/](https://github.com/IntelligenceLattice/flowlog/tree/main/examples/mcp_doc_host/) - a standalone toy script
 plus a real-world `flowlog.config.json`, runnable with no MCP SDK or cloud
 dependencies.
 
