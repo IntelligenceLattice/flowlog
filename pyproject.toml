@@ -1,7 +1,7 @@
 [project]
 name = "flowlog-trace"
-version = "0.1.0"
-description = "See how your processes, agents, and MCP servers talk to each other, as a live sequence diagram in your browser. Built for local debugging and demos."
+version = "0.1.1"
+description = "See how your processes, agents, and MCP servers talk to each other, as a live sequence diagram in your browser. Built for local debugging and demos. Currently supports Python."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
