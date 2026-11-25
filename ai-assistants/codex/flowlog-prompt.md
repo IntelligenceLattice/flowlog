@@ -10,7 +10,7 @@ Follow these steps exactly:
 2. Ensure `flowlog` is installed in this project (check `import flowlog`; if missing,
    detect this project's dependency convention - uv/poetry pyproject, requirements.txt,
    or bare pip - and install flowlog the matching way,
-   from `git+https://github.com/IntelligenceLattice/flowlog` (the PyPI package named `flowlog` is an unrelated project); prefer a dev-only dependency
+   as the PyPI package `flowlog-trace` (not `flowlog`, which is an unrelated project); prefer a dev-only dependency
    since instrumented calls will be wrapped in `if __debug__:`).
 3. Identify instrumentation points in scope: function entry/exit at process/network
    boundaries, request handlers, tool/queue dispatch - not every function, only

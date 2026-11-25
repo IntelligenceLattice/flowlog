@@ -47,14 +47,19 @@ server. No collector, no account, no cloud.
 **2. Run your script and watch the flow:**
 
 ```bash
-pip install git+https://github.com/IntelligenceLattice/flowlog
+pip install flowlog-trace
 flowlog run your_script.py   # starts tracing and opens the viewer in your browser
 ```
+
+The package is called `flowlog-trace` on PyPI (`flowlog` was already taken
+by an unrelated project), but in your code it's still `import flowlog`, and
+the command is still `flowlog`.
 
 **Just want to see it first?** The bundled example already has the calls in it:
 
 ```bash
-cd examples/mcp_doc_host
+git clone https://github.com/IntelligenceLattice/flowlog
+cd flowlog/examples/mcp_doc_host
 flowlog run --config flowlog.config.json toy_host.py -- "How do I rotate an API key?"
 ```
 
@@ -203,7 +208,7 @@ Instrument <PATH> with flowlog tracing, following these rules exactly:
    pyproject.toml/requirements.txt or try `import flowlog`). If not installed,
    add it using this project's own existing dependency manager (uv add / poetry
    add / pip install + requirements.txt entry), installing it
-   from `git+https://github.com/IntelligenceLattice/flowlog` (the PyPI package named `flowlog` is an unrelated project) - add it as a dev-only dependency if the project separates
+   as the PyPI package `flowlog-trace` (not `flowlog`, which is an unrelated project) - add it as a dev-only dependency if the project separates
    dev/prod deps.
 2. Scan <PATH> (a file, folder, or the whole repo if no path given) for logical
    boundaries: function entry/exit at process or network edges, request handlers,
